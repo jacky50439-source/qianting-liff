@@ -30,6 +30,7 @@
       border-radius: 8px;
     }
   </style>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
 <body>
   <div class="card">
@@ -43,21 +44,50 @@
     <p>目前沒有連接公司財務資料。</p>
   </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const tempId = params.get('id');
 
+<script>
+  async function startApp() {
     const status = document.getElementById('status');
     const output = document.getElementById('tempId');
 
-    if (tempId) {
-      status.textContent = '網址參數接收成功';
-      status.className = 'status';
-      output.textContent = tempId;
-    } else {
-      status.textContent = '尚未收到暫存 ID';
-      output.textContent = '網址沒有 id 參數';
+    status.textContent = 'LINE LIFF 初始化中...';
+
+    try {
+      await liff.init({
+        liffId: '2012604894-ztr2T9nZ'
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      let tempId = params.get('id');
+
+      if (!tempId) {
+        const state = params.get('liff.state');
+
+        if (state) {
+          const stateParams = new URLSearchParams(
+            state.replace(/^\?/, '')
+          );
+          tempId = stateParams.get('id');
+        }
+      }
+
+      if (tempId) {
+        status.textContent = '網址參數接收成功';
+        status.className = 'status';
+        output.textContent = tempId;
+      } else {
+        status.textContent = 'LIFF 初始化成功，但沒有收到 ID';
+        output.textContent = '網址沒有 id 參數';
+      }
+
+    } catch (error) {
+      status.textContent = 'LIFF 初始化失敗';
+      output.textContent = error.message || String(error);
     }
-  </script>
+  }
+
+  startApp();
+</script>
+
 </body>
 </html>
