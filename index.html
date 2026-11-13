@@ -53,11 +53,27 @@
     status.textContent = 'LINE LIFF 初始化中...';
 
     try {
+      
       await liff.init({
         liffId: '2012604894-ztr2T9nZ'
       });
 
+      // 檢查 LINE 登入狀態
+      const loginStatus = document.createElement('p');
+
+      if (liff.isLoggedIn()) {
+        loginStatus.textContent = 'LINE 登入狀態：已登入';
+        loginStatus.style.color = '#16803c';
+      } else {
+        loginStatus.textContent = 'LINE 登入狀態：尚未登入';
+        loginStatus.style.color = '#c62828';
+      }
+
+      document.querySelector('.card').appendChild(loginStatus);
+
+      // 保留原本的發票 ID 讀取功能
       const params = new URLSearchParams(window.location.search);
+
       let tempId = params.get('id');
 
       if (!tempId) {
