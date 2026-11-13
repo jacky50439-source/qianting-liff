@@ -3,15 +3,61 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport"
-        content="width=device-width, initial-scale=1">
-  <title>芊町 AI 助理</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>芊町 AI 助理｜入口測試</title>
+  <style>
+    body {
+      font-family: Arial, "Microsoft JhengHei", sans-serif;
+      background: #f5f6f8;
+      padding: 30px 16px;
+      text-align: center;
+    }
+    .card {
+      max-width: 480px;
+      margin: auto;
+      padding: 24px;
+      background: white;
+      border-radius: 14px;
+    }
+    .status {
+      color: #16803c;
+      font-weight: bold;
+    }
+    .id {
+      overflow-wrap: anywhere;
+      padding: 12px;
+      background: #f1f3f5;
+      border-radius: 8px;
+    }
+  </style>
 </head>
-<body style="font-family:Arial,sans-serif;
-             text-align:center;padding:40px 20px;">
-  <h2>芊町 AI 助理</h2>
-  <h3>LINE LIFF 入口測試</h3>
-  <p>GitHub Pages 網頁建立成功！</p>
-  <p>目前尚未連接任何公司資料。</p>
+<body>
+  <div class="card">
+    <h2>芊町 AI 助理</h2>
+    <h3>LINE LIFF 入口測試</h3>
+
+    <p id="status">檢查網址中...</p>
+    <p>收到的測試 ID：</p>
+    <p class="id" id="tempId">尚未讀取</p>
+
+    <p>目前沒有連接公司財務資料。</p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const tempId = params.get('id');
+
+    const status = document.getElementById('status');
+    const output = document.getElementById('tempId');
+
+    if (tempId) {
+      status.textContent = '網址參數接收成功';
+      status.className = 'status';
+      output.textContent = tempId;
+    } else {
+      status.textContent = '尚未收到暫存 ID';
+      output.textContent = '網址沒有 id 參數';
+    }
+  </script>
 </body>
 </html>
