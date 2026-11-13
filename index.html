@@ -42,10 +42,39 @@
     <p class="id" id="tempId">尚未讀取</p>
 
     <p>目前沒有連接公司財務資料。</p>
+    
+<button
+  id="loginButton"
+  type="button"
+  onclick="loginWithLine()"
+  style="
+    display:none;
+    width:100%;
+    padding:14px;
+    margin-top:16px;
+    background:#06c755;
+    color:white;
+    border:none;
+    border-radius:10px;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+  "
+>
+  使用 LINE 登入
+</button>
   </div>
 
 
 <script>
+function loginWithLine() {
+  if (!liff.isLoggedIn()) {
+    liff.login({
+      redirectUri: window.location.href
+    });
+  }
+}
+
   async function startApp() {
     const status = document.getElementById('status');
     const output = document.getElementById('tempId');
@@ -75,11 +104,15 @@ if (idToken) {
             'LINE 已登入，但尚未取得 ID Token';
           loginStatus.style.color = '#c62828';
         }
-      } else {
-        loginStatus.textContent =
-          'LINE 登入狀態：尚未登入';
-        loginStatus.style.color = '#c62828';
-      }
+      
+} else {
+  loginStatus.textContent =
+    'LINE 登入狀態：尚未登入';
+  loginStatus.style.color = '#c62828';
+
+  document.getElementById('loginButton').style.display = 'block';
+}
+
 
       document.querySelector('.card').appendChild(loginStatus);
 
