@@ -65,11 +65,12 @@
       if (liff.isLoggedIn()) {
         const idToken = liff.getIDToken();
 
-        if (idToken) {
-          loginStatus.textContent =
-            'LINE 登入成功，ID Token 已取得';
-          loginStatus.style.color = '#16803c';
-        } else {
+if (idToken) {
+  loginStatus.textContent =
+    'LINE 登入成功，身分憑證已取得';
+
+  loginStatus.style.color = '#16803c';
+} else {
           loginStatus.textContent =
             'LINE 已登入，但尚未取得 ID Token';
           loginStatus.style.color = '#c62828';
