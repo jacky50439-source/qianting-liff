@@ -38,8 +38,13 @@
 </label>
 
 
+
 <label>發票日期
-  <input id="documentDate" disabled placeholder="尚未取得授權資料">
+  <input
+    id="documentDate"
+    type="date"
+    disabled
+  >
 </label>
 
 <label>發票號碼
@@ -85,12 +90,14 @@
       <button type="button" disabled>正式登錄（尚未開放）</button>
     </section>
     
+
 <p class="hint">
   本系統目前為安全測試階段。
   通過 LINE 身分及白名單驗證後，
-  僅能查閱指定暫存 ID 的單據資料。
-  所有欄位均為唯讀，
-  尚未開放修改、確認或正式登錄功能。
+  可查閱指定暫存 ID 的單據資料，
+  並進行人工編輯與資料修正。
+  目前修改內容僅保留於本次頁面，
+  尚未提供儲存、確認或正式登錄功能。
 </p>
 
   </main>
