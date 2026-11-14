@@ -159,6 +159,13 @@ document.getElementById('invoiceAmount').value =
 
 document.getElementById('invoiceNumber').value =
   String(invoice.invoiceNumber ?? '').trim() || '尚未辨識';
+  
+document.getElementById('vendorTaxId').value =
+  String(invoice.vendorTaxId ?? '').trim() || '尚未辨識';
+
+document.getElementById('buyerTaxId').value =
+  String(invoice.buyerTaxId ?? '').trim() || '尚未辨識';
+
 
 
 document.getElementById('invoiceStatus').textContent =
