@@ -117,6 +117,11 @@ if (
   result.invoice.tempId === getTempId()
 ) {
   setStatus('LINE 驗證通過，發票資料查詢成功', '#16803c');
+  
+const loginStatus = document.getElementById('loginStatus');
+loginStatus.textContent = 'LINE 身分及白名單驗證完成';
+loginStatus.style.color = '#16803c';
+
 
   
 const invoice = result.invoice;
