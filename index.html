@@ -334,10 +334,24 @@ function isValidTaxIdFormat(value) {
   const error = document.getElementById(fieldId + 'Error');
 
   field.addEventListener('input', function () {
-    const isValid = isValidTaxIdFormat(field.value);
+    
+const value = field.value.trim();
 
-    error.style.display = isValid ? 'none' : 'block';
-    field.setAttribute('aria-invalid', String(!isValid));
+const formatValid = isValidTaxIdFormat(value);
+const checksumValid =
+  value === '' || (formatValid && isValidTaiwanTaxId(value));
+
+const isValid = formatValid && checksumValid;
+
+if (value !== '' && !formatValid) {
+  error.textContent = '統一編號必須為 8 碼數字';
+} else if (value !== '' && !checksumValid) {
+  error.textContent = '統一編號檢查碼不正確，請確認';
+}
+
+error.style.display = isValid ? 'none' : 'block';
+field.setAttribute('aria-invalid', String(!isValid));
+
   });
 });
 
