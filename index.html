@@ -38,15 +38,27 @@
       el.textContent = message;
       el.style.color = color;
     }
-    function getTempId() {
-      const params = new URLSearchParams(window.location.search);
-      let id = params.get('id');
-      if (!id) {
-        const state = params.get('liff.state');
-        if (state) id = new URLSearchParams(state.replace(/^\?/, '')).get('id');
-      }
-      return id ? id.trim() : '';
+    
+function getTempId() {
+  const params = new URLSearchParams(window.location.search);
+
+  let id = params.get('tempId') || params.get('id');
+
+  if (!id) {
+    const state = params.get('liff.state');
+
+    if (state) {
+      const stateParams = new URLSearchParams(
+        state.replace(/^\?/, '')
+      );
+
+      id = stateParams.get('tempId') || stateParams.get('id');
     }
+  }
+
+  return id ? id.trim() : '';
+}
+
     function loginWithLine() {
       if (!liff.isLoggedIn()) liff.login({ redirectUri: window.location.href });
     }
