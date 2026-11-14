@@ -147,9 +147,10 @@ document.getElementById('invoiceAmount').value =
     ? ''
     : String(invoice.amount);
 
-// 後端尚未提供獨立的發票號碼
+
 document.getElementById('invoiceNumber').value =
-  '尚未提供';
+  String(invoice.invoiceNumber ?? '').trim() || '尚未辨識';
+
 
 document.getElementById('invoiceStatus').textContent =
   '已安全取得指定單據資料，目前僅供檢視，尚未開放修改或正式登錄。';
