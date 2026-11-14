@@ -251,11 +251,13 @@ document.getElementById('editButton').addEventListener('click', function () {
 editableFields.forEach(function (fieldId) {
   const field = document.getElementById(fieldId);
 
-  if (['尚未辨識', '尚未分類'].includes(field.value.trim())) {
-    field.value = '';
-  }
+  
+if (['尚未辨識', '尚未分類'].includes(field.value.trim())) {
+  field.value = '';
+}
 
-  field.disabled = false;
+field.placeholder = '請輸入資料';
+field.disabled = false;
 });
 
 
