@@ -101,8 +101,28 @@ if (
 ) {
   setStatus('LINE 驗證通過，發票資料查詢成功', '#16803c');
 
-  document.getElementById('invoiceStatus').textContent =
-    '已安全取得指定發票資料，準備顯示確認內容。';
+  
+const invoice = result.invoice;
+
+// 只顯示已通過驗證的指定單據資料
+document.getElementById('vendorName').value =
+  String(invoice.vendorName ?? '');
+
+document.getElementById('documentDate').value =
+  String(invoice.documentDate ?? '');
+
+document.getElementById('invoiceAmount').value =
+  invoice.amount === null || invoice.amount === undefined
+    ? ''
+    : String(invoice.amount);
+
+// 後端尚未提供獨立的發票號碼
+document.getElementById('invoiceNumber').value =
+  '尚未提供';
+
+document.getElementById('invoiceStatus').textContent =
+  '已安全取得指定單據資料，目前僅供檢視，尚未開放修改或正式登錄。';
+
 
 } else {
   setStatus('發票查詢失敗或身分驗證未通過', '#c62828');
