@@ -297,6 +297,28 @@ field.disabled = false;
 });
 
     
+
+
+function isValidTaiwanTaxId(value) {
+  const taxId = String(value ?? '').trim();
+
+  if (!/^\d{8}$/.test(taxId)) return false;
+
+  const weights = [1, 2, 1, 2, 1, 2, 4, 1];
+
+  const sum = taxId.split('').reduce(function (total, digit, index) {
+    const product = Number(digit) * weights[index];
+
+    return total + Math.floor(product / 10) + (product % 10);
+  }, 0);
+
+  // 現行規則：總和必須為 10 的倍數
+  if (sum % 10 === 0) return true;
+
+  // 第 7 碼為 7 的特殊規則
+  return taxId[6] === '7' && (sum + 1) % 10 === 0;
+}
+
 function isValidTaxIdFormat(value) {
   const taxId = String(value ?? '').trim();
 
