@@ -47,13 +47,31 @@
 </label>
       
 <label>賣方統一編號
-  <input id="vendorTaxId" disabled placeholder="尚未取得授權資料">
+  
+<input id="vendorTaxId" type="text" inputmode="numeric" maxlength="8" disabled placeholder="尚未取得授權資料">
+
 </label>
+      
+<p id="vendorTaxIdError"
+   class="hint"
+   role="alert"
+   style="color:#c62828;display:none;">
+  統一編號必須為 8 碼數字
+</p>
+
 
 <label>買方統一編號
-  <input id="buyerTaxId" disabled placeholder="尚未取得授權資料">
+  
+<input id="buyerTaxId" type="text" inputmode="numeric" maxlength="8" disabled placeholder="尚未取得授權資料">
+
 </label>
 
+<p id="buyerTaxIdError"
+   class="hint"
+   role="alert"
+   style="color:#c62828;display:none;">
+  統一編號必須為 8 碼數字
+</p>
 
 <label>含稅總額
   <input id="invoiceAmount" disabled placeholder="尚未取得授權資料">
@@ -268,6 +286,39 @@ field.disabled = false;
   document.getElementById('invoiceStatus').textContent =
     '目前為人工編輯模式，修改內容尚未儲存。';
 });
+
+    
+['vendorTaxId', 'buyerTaxId'].forEach(function (fieldId) {
+  const field = document.getElementById(fieldId);
+
+  field.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 8);
+  });
+});
+
+    
+function isValidTaxIdFormat(value) {
+  const taxId = String(value ?? '').trim();
+
+  // 未填寫時，暫時允許空白
+  if (taxId === '') return true;
+
+  // 有填寫時，必須剛好 8 碼數字
+  return /^\d{8}$/.test(taxId);
+}
+    
+['vendorTaxId', 'buyerTaxId'].forEach(function (fieldId) {
+  const field = document.getElementById(fieldId);
+  const error = document.getElementById(fieldId + 'Error');
+
+  field.addEventListener('input', function () {
+    const isValid = isValidTaxIdFormat(field.value);
+
+    error.style.display = isValid ? 'none' : 'block';
+    field.setAttribute('aria-invalid', String(!isValid));
+  });
+});
+
 
     document.getElementById('loginButton').addEventListener('click', loginWithLine);
     startApp();
