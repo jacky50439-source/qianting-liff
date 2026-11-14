@@ -247,9 +247,17 @@ document.getElementById('editButton').addEventListener('click', function () {
     'invoiceAmount'
   ];
 
-  editableFields.forEach(function (fieldId) {
-    document.getElementById(fieldId).disabled = false;
-  });
+  
+editableFields.forEach(function (fieldId) {
+  const field = document.getElementById(fieldId);
+
+  if (['尚未辨識', '尚未分類'].includes(field.value.trim())) {
+    field.value = '';
+  }
+
+  field.disabled = false;
+});
+
 
   this.disabled = true;
   this.textContent = '編輯中';
