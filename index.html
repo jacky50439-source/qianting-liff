@@ -21,10 +21,23 @@
     <section class="locked" aria-labelledby="invoiceTitle">
       <strong id="invoiceTitle">發票確認資料</strong>
       <p id="invoiceStatus" class="hint">尚未啟用安全發票查詢，以下欄位維持鎖定。</p>
-      <label>交易對象名稱<input disabled placeholder="尚未取得授權資料"></label>
-      <label>發票日期<input disabled placeholder="尚未取得授權資料"></label>
-      <label>發票號碼<input disabled placeholder="尚未取得授權資料"></label>
-      <label>含稅總額<input disabled placeholder="尚未取得授權資料"></label>
+     
+<label>交易對象名稱
+  <input id="vendorName" disabled placeholder="尚未取得授權資料">
+</label>
+
+<label>發票日期
+  <input id="documentDate" disabled placeholder="尚未取得授權資料">
+</label>
+
+<label>發票號碼
+  <input id="invoiceNumber" disabled placeholder="尚未取得授權資料">
+</label>
+
+<label>含稅總額
+  <input id="invoiceAmount" disabled placeholder="尚未取得授權資料">
+</label>
+
       <button type="button" disabled>正式登錄（尚未開放）</button>
     </section>
     <p class="hint">本階段僅測試 LINE 身分及白名單驗證，不會讀取、修改或登錄公司財務資料。</p>
@@ -76,14 +89,28 @@ function getTempId() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ tempId, idToken })
         });
-        const result = await response.json();
-        if (response.ok && result.success === true && result.authorized === true) {
-          setStatus('LINE 身分及白名單驗證通過', '#16803c');
-          document.getElementById('invoiceStatus').textContent =
-            '身分驗證已通過；發票查詢尚未接通，資料仍維持鎖定。';
-        } else {
-          setStatus('LINE 身分驗證未通過', '#c62828');
-        }
+       
+const result = await response.json();
+
+if (
+  response.ok &&
+  result.success === true &&
+  result.authorized === true &&
+  result.invoice &&
+  result.invoice.tempId === getTempId()
+) {
+  setStatus('LINE 驗證通過，發票資料查詢成功', '#16803c');
+
+  document.getElementById('invoiceStatus').textContent =
+    '已安全取得指定發票資料，準備顯示確認內容。';
+
+} else {
+  setStatus('發票查詢失敗或身分驗證未通過', '#c62828');
+
+  document.getElementById('invoiceStatus').textContent =
+    '無法取得指定發票資料，表單維持鎖定。';
+}
+
       } catch (error) {
         setStatus('驗證服務暫時無法連線', '#c62828');
       }
