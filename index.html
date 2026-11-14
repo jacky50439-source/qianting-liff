@@ -4,7 +4,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>芊町 AI 助理｜入口測試</title>
+  <title>芊町 AI 助理｜安全驗證測試</title>
+
   <style>
     body {
       font-family: Arial, "Microsoft JhengHei", sans-serif;
@@ -12,6 +13,7 @@
       padding: 30px 16px;
       text-align: center;
     }
+
     .card {
       max-width: 480px;
       margin: auto;
@@ -19,109 +21,81 @@
       background: white;
       border-radius: 14px;
     }
-    .status {
-      color: #16803c;
-      font-weight: bold;
-    }
+
     .id {
       overflow-wrap: anywhere;
       padding: 12px;
       background: #f1f3f5;
       border-radius: 8px;
     }
+
+    #status, #loginStatus {
+      font-weight: bold;
+    }
+
+    #loginButton {
+      display: none;
+      width: 100%;
+      padding: 14px;
+      margin-top: 16px;
+      background: #06c755;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
   </style>
+
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
+
 <body>
   <div class="card">
     <h2>芊町 AI 助理</h2>
-    <h3>LINE LIFF 入口測試</h3>
+    <h3>LINE LIFF 安全驗證測試</h3>
 
-    <p id="status">檢查網址中...</p>
+    <p id="status">正在初始化...</p>
+
     <p>收到的測試 ID：</p>
     <p class="id" id="tempId">尚未讀取</p>
 
+    <p id="loginStatus"></p>
+
     <p>目前沒有連接公司財務資料。</p>
-    
-<button
-  id="loginButton"
-  type="button"
-  onclick="loginWithLine()"
-  style="
-    display:none;
-    width:100%;
-    padding:14px;
-    margin-top:16px;
-    background:#06c755;
-    color:white;
-    border:none;
-    border-radius:10px;
-    font-size:16px;
-    font-weight:bold;
-    cursor:pointer;
-  "
->
-  使用 LINE 登入
-</button>
+
+    <button
+      id="loginButton"
+      type="button"
+      onclick="loginWithLine()"
+    >
+      使用 LINE 登入
+    </button>
   </div>
 
+  <script>
+    const LIFF_ID = '2012604894-ztr2T9nZ';
 
-<script>
-function loginWithLine() {
-  if (!liff.isLoggedIn()) {
-    liff.login({
-      redirectUri: window.location.href
-    });
-  }
-}
+    // 僅供測試，不是正式財務查詢網址
+    const VERIFY_URL =
+      'https://qian-ai.app.n8n.cloud/webhook-test/qianting-invoice-secure';
 
-  async function startApp() {
-    const status = document.getElementById('status');
-    const output = document.getElementById('tempId');
+    let verificationStarted = false;
 
-    status.textContent = 'LINE LIFF 初始化中...';
+    function setStatus(message, color = '#333333') {
+      const element = document.getElementById('status');
+      element.textContent = message;
+      element.style.color = color;
+    }
 
-    try {
-      
-      await liff.init({
-        liffId: '2012604894-ztr2T9nZ'
-      });
-
-
-      // 檢查 LINE 登入狀態與 ID Token
-      const loginStatus = document.createElement('p');
-
-      if (liff.isLoggedIn()) {
-        const idToken = liff.getIDToken();
-
-if (idToken) {
-  loginStatus.textContent =
-    'LINE 登入成功，身分憑證已取得';
-
-  loginStatus.style.color = '#16803c';
-} else {
-          loginStatus.textContent =
-            'LINE 已登入，但尚未取得 ID Token';
-          loginStatus.style.color = '#c62828';
-        }
-      
-} else {
-  loginStatus.textContent =
-    'LINE 登入狀態：尚未登入';
-  loginStatus.style.color = '#c62828';
-
-  document.getElementById('loginButton').style.display = 'block';
-}
-
-
-      document.querySelector('.card').appendChild(loginStatus);
-
-
-      // 保留原本的發票 ID 讀取功能
+    function getTempId() {
       const params = new URLSearchParams(window.location.search);
 
+      // 一般網址參數
       let tempId = params.get('id');
 
+      // LINE LIFF 轉址參數
       if (!tempId) {
         const state = params.get('liff.state');
 
@@ -129,27 +103,157 @@ if (idToken) {
           const stateParams = new URLSearchParams(
             state.replace(/^\?/, '')
           );
+
           tempId = stateParams.get('id');
         }
       }
 
-      if (tempId) {
-        status.textContent = '網址參數接收成功';
-        status.className = 'status';
-        output.textContent = tempId;
-      } else {
-        status.textContent = 'LIFF 初始化成功，但沒有收到 ID';
-        output.textContent = '網址沒有 id 參數';
+      return tempId ? tempId.trim() : '';
+    }
+
+    function loginWithLine() {
+      if (!liff.isLoggedIn()) {
+        liff.login({
+          redirectUri: window.location.href
+        });
+      }
+    }
+
+    async function verifyLineWithN8n(idToken, tempId) {
+      if (verificationStarted) {
+        return;
       }
 
-    } catch (error) {
-      status.textContent = 'LIFF 初始化失敗';
-      output.textContent = error.message || String(error);
+      if (!idToken || !tempId) {
+        setStatus(
+          '缺少身分憑證或發票 ID，無法驗證',
+          '#c62828'
+        );
+        return;
+      }
+
+      verificationStarted = true;
+
+      setStatus('正在進行 LINE 安全驗證...');
+
+      try {
+        const response = await fetch(VERIFY_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            tempId: tempId,
+            idToken: idToken
+          })
+        });
+
+        const result = await response.json();
+
+        if (
+          response.ok &&
+          result.success === true &&
+          result.authorized === true
+        ) {
+          setStatus(
+            'LINE 身分及白名單驗證通過',
+            '#16803c'
+          );
+        } else {
+          setStatus(
+            'LINE 身分驗證未通過',
+            '#c62828'
+          );
+        }
+
+      } catch (error) {
+        // 不輸出 Token、請求內容或敏感錯誤資訊
+        setStatus(
+          '驗證服務暫時無法連線',
+          '#c62828'
+        );
+      }
     }
-  }
 
-  startApp();
-</script>
+    async function startApp() {
+      const output = document.getElementById('tempId');
+      const loginStatus = document.getElementById('loginStatus');
+      const loginButton = document.getElementById('loginButton');
 
+      setStatus('LINE LIFF 初始化中...');
+
+      try {
+        await liff.init({
+          liffId: LIFF_ID
+        });
+
+        // 先取得發票暫存 ID，避免覆蓋驗證結果
+        const tempId = getTempId();
+
+        if (tempId) {
+          output.textContent = tempId;
+        } else {
+          output.textContent = '網址沒有 id 參數';
+          setStatus(
+            '缺少發票暫存 ID，無法進行驗證',
+            '#c62828'
+          );
+        }
+
+        if (!liff.isLoggedIn()) {
+          loginStatus.textContent = 'LINE 尚未登入';
+          loginStatus.style.color = '#c62828';
+
+          loginButton.style.display = 'block';
+
+          if (tempId) {
+            setStatus('請先使用 LINE 登入');
+          }
+
+          return;
+        }
+
+        const idToken = liff.getIDToken();
+
+        if (!idToken) {
+          loginStatus.textContent =
+            'LINE 已登入，但尚未取得 ID Token';
+
+          loginStatus.style.color = '#c62828';
+
+          setStatus(
+            '無法取得 LINE 身分憑證',
+            '#c62828'
+          );
+
+          return;
+        }
+
+        loginStatus.textContent =
+          'LINE 已登入，等待身分授權確認';
+
+        loginStatus.style.color = '#555555';
+
+        if (!tempId) {
+          return;
+        }
+
+        // 僅進行身分與白名單驗證
+        // 不查詢、不寫入任何財務資料
+        await verifyLineWithN8n(idToken, tempId);
+
+      } catch (error) {
+        setStatus(
+          'LIFF 初始化失敗',
+          '#c62828'
+        );
+
+        output.textContent =
+          '請確認 LIFF 設定及網路連線';
+      }
+    }
+
+    startApp();
+  </script>
 </body>
 </html>
