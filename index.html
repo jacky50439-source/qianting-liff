@@ -20,6 +20,15 @@
     <button id="loginButton" type="button">使用 LINE 登入</button>
     <section class="locked" aria-labelledby="invoiceTitle">
       <strong id="invoiceTitle">發票確認資料</strong>
+      
+<label>單據類型
+  <input id="documentType" disabled placeholder="尚未取得授權資料">
+</label>
+
+<label>進銷項別
+  <input id="transactionType" disabled placeholder="尚未取得授權資料">
+</label>
+
       <p id="invoiceStatus" class="hint">尚未啟用安全發票查詢，以下欄位維持鎖定。</p>
      
 <label>交易對象名稱
@@ -40,7 +49,15 @@
 
       <button type="button" disabled>正式登錄（尚未開放）</button>
     </section>
-    <p class="hint">本階段僅測試 LINE 身分及白名單驗證，不會讀取、修改或登錄公司財務資料。</p>
+    
+<p class="hint">
+  本系統目前為安全測試階段。
+  通過 LINE 身分及白名單驗證後，
+  僅能查閱指定暫存 ID 的單據資料。
+  所有欄位均為唯讀，
+  尚未開放修改、確認或正式登錄功能。
+</p>
+
   </main>
   <script>
     const LIFF_ID = '2012604894-ztr2T9nZ';
@@ -103,10 +120,19 @@ if (
 
   
 const invoice = result.invoice;
+  
+document.getElementById('documentType').value =
+  String(invoice.documentType ?? '').trim() || '尚未辨識';
+
+document.getElementById('transactionType').value =
+  String(invoice.transactionType ?? '').trim() || '尚未分類';
+
 
 // 只顯示已通過驗證的指定單據資料
+
 document.getElementById('vendorName').value =
-  String(invoice.vendorName ?? '');
+  String(invoice.vendorName ?? '').trim() || '尚未辨識';
+
 
 document.getElementById('documentDate').value =
   String(invoice.documentDate ?? '');
