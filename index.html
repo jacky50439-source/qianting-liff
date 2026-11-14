@@ -31,9 +31,11 @@
 
       <p id="invoiceStatus" class="hint">尚未啟用安全發票查詢，以下欄位維持鎖定。</p>
      
+
 <label>交易對象名稱
   <input id="vendorName" disabled placeholder="尚未取得授權資料">
 </label>
+
 
 <label>發票日期
   <input id="documentDate" disabled placeholder="尚未取得授權資料">
@@ -55,6 +57,11 @@
 <label>含稅總額
   <input id="invoiceAmount" disabled placeholder="尚未取得授權資料">
 </label>
+      
+<button id="editButton" type="button" disabled>
+  開始編輯（尚未驗證）
+</button>
+
 
       <button type="button" disabled>正式登錄（尚未開放）</button>
     </section>
@@ -170,6 +177,11 @@ document.getElementById('buyerTaxId').value =
 
 document.getElementById('invoiceStatus').textContent =
   '已安全取得指定單據資料，目前僅供檢視，尚未開放修改或正式登錄。';
+  
+const editButton = document.getElementById('editButton');
+editButton.disabled = false;
+editButton.textContent = '開始編輯';
+
 
 
 } else {
@@ -220,6 +232,32 @@ document.getElementById('invoiceStatus').textContent =
         output.textContent = '請確認 LIFF 設定及網路連線';
       }
     }
+    
+document.getElementById('editButton').addEventListener('click', function () {
+  if (this.disabled) return;
+
+  const editableFields = [
+    'documentType',
+    'transactionType',
+    'vendorName',
+    'documentDate',
+    'invoiceNumber',
+    'vendorTaxId',
+    'buyerTaxId',
+    'invoiceAmount'
+  ];
+
+  editableFields.forEach(function (fieldId) {
+    document.getElementById(fieldId).disabled = false;
+  });
+
+  this.disabled = true;
+  this.textContent = '編輯中';
+
+  document.getElementById('invoiceStatus').textContent =
+    '目前為人工編輯模式，修改內容尚未儲存。';
+});
+
     document.getElementById('loginButton').addEventListener('click', loginWithLine);
     startApp();
   </script>
