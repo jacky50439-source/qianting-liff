@@ -197,8 +197,17 @@ document.getElementById('vendorName').value =
   String(invoice.vendorName ?? '').trim() || '尚未辨識';
 
 
-document.getElementById('documentDate').value =
-  String(invoice.documentDate ?? '');
+
+const rawDocumentDate = String(invoice.documentDate ?? '').trim();
+
+const dateMatch = rawDocumentDate.match(
+  /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:$|[T\s])/
+);
+
+document.getElementById('documentDate').value = dateMatch
+  ? `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`
+  : '';
+
 
 document.getElementById('invoiceAmount').value =
   invoice.amount === null || invoice.amount === undefined
