@@ -12,7 +12,7 @@
 <body>
   <main class="card">
     <h2>芊町 AI 助理</h2>
-    <h3>發票確認表單｜安全測試階段 V16</h3>
+    <h3>發票確認表單</h3>
     <p id="status" role="status">正在初始化...</p>
     <p class="hint">發票暫存 ID</p>
     <p class="id" id="tempId">尚未讀取</p>
@@ -29,7 +29,7 @@
   <input id="transactionType" disabled placeholder="尚未取得授權資料">
 </label>
 
-      <p id="invoiceStatus" class="hint">尚未啟用安全發票查詢，以下欄位維持鎖定。</p>
+      <p id="invoiceStatus" class="hint">請稍候，正在取得發票資料…</p>
      
 
 
@@ -103,23 +103,20 @@
 </button>
 
 
-      <button type="button" disabled>正式登錄（尚未開放）</button>
+      <button type="button" disabled>儲存確認（尚未開放）</button>
     </section>
     
 
 <p class="hint">
-  本系統目前為安全測試階段。
   通過 LINE 身分及白名單驗證後，
-  可查閱指定暫存 ID 的單據資料，
-  並進行人工編輯與資料修正。
-  目前修改內容僅保留於本次頁面，
-  尚未提供儲存、確認或正式登錄功能。
+  可查閱指定暫存 ID 的單據資料，並進行人工編輯。
+  編輯內容僅保留於本次頁面，尚未提供儲存或正式登錄功能。
 </p>
 
   </main>
   <script>
     const LIFF_ID = '2012604894-ztr2T9nZ';
-    const VERIFY_URL = 'https://qian-ai.app.n8n.cloud/webhook-test/qianting-invoice-secure';
+    const VERIFY_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-secure';
     let verificationStarted = false;
     function setStatus(message, color = '#333333') {
       const el = document.getElementById('status');
@@ -226,7 +223,7 @@ document.getElementById('buyerTaxId').value =
 
 
 document.getElementById('invoiceStatus').textContent =
-  '已安全取得指定單據資料，目前僅供檢視，尚未開放修改或正式登錄。';
+  '發票資料已載入，請核對內容。';
   
 const editButton = document.getElementById('editButton');
 editButton.disabled = false;
