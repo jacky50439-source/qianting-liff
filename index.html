@@ -78,9 +78,25 @@
   統一編號必須為 8 碼數字
 </p>
 
-<label>含稅總額
-  <input id="invoiceAmount" disabled placeholder="尚未取得授權資料">
+
+
+<label>含稅總額（新臺幣）
+  <input
+    id="invoiceAmount"
+    type="number"
+    inputmode="numeric"
+    min="0"
+    step="1"
+    disabled
+    placeholder="尚未取得授權資料"
+  >
 </label>
+<p
+  id="invoiceAmountError"
+  style="color: red; display: none; font-size: 13px;"
+></p>
+
+
       
 <button id="editButton" type="button" disabled>
   開始編輯（尚未驗證）
@@ -325,6 +341,33 @@ function isValidTaiwanTaxId(value) {
   // 第 7 碼為 7 的特殊規則
   return taxId[6] === '7' && (sum + 1) % 10 === 0;
 }
+ 
+function validateInvoiceAmount() {
+  const input = document.getElementById("invoiceAmount");
+  const error = document.getElementById("invoiceAmountError");
+
+  const value = input.value.trim();
+  let message = "";
+
+  if (value === "") {
+    message = "請輸入含稅總額";
+  } else if (
+    !Number.isSafeInteger(Number(value)) ||
+    Number(value) < 0
+  ) {
+    message = "金額必須為 0 或正整數";
+  }
+
+  error.textContent = message;
+  error.style.display = message ? "block" : "none";
+  input.setAttribute("aria-invalid", message ? "true" : "false");
+
+  return message === "";
+}
+
+document.getElementById("invoiceAmount")
+  .addEventListener("input", validateInvoiceAmount);
+   
 
 function isValidTaxIdFormat(value) {
   const taxId = String(value ?? '').trim();
