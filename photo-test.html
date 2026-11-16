@@ -278,9 +278,11 @@ editButton.disabled = false;
 editButton.textContent = '開始編輯';
 
 // 發票資料驗證成功後，才另外讀取受保護的照片；不阻擋表單。
-void loadSecureInvoicePhoto(idToken, tempId);
+//void loadSecureInvoicePhoto(idToken, tempId);
 
-
+if (tempId === 'TMP-20261116192236944') {
+  void loadSecureInvoicePhoto(idToken, 'TMP-NOTFOUND999');
+}
 
 } else {
   setStatus('發票查詢失敗或身分驗證未通過', '#c62828');
