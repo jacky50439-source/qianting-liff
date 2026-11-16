@@ -1,0 +1,470 @@
+```
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>芊町 AI 助理｜安全發票確認</title>
+  <style>
+    *{box-sizing:border-box}body{font-family:Arial,"Microsoft JhengHei",sans-serif;background:#f5f6f8;margin:0;padding:28px 16px;color:#27313a}.card{max-width:520px;margin:auto;padding:24px;background:#fff;border-radius:14px;box-shadow:0 3px 16px #15253610}h2,h3{text-align:center}h3{font-size:17px;color:#555}#status,#loginStatus{font-weight:bold;text-align:center}.id{overflow-wrap:anywhere;padding:12px;background:#f1f3f5;border-radius:8px;text-align:center}button{width:100%;padding:14px;margin-top:16px;background:#06c755;color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer}#loginButton{display:none}.hint{font-size:13px;color:#666;line-height:1.6}.locked{margin-top:18px;padding:16px;background:#f7f8fa;border:1px solid #e3e6ea;border-radius:10px}label{display:block;font-size:13px;color:#555;margin-top:12px}input{width:100%;padding:10px;margin-top:5px;border:1px solid #d9dfe5;border-radius:7px;background:#f5f6f8;color:#555}button:disabled{background:#aab2b9;cursor:not-allowed}.photo-preview{margin-top:18px;padding:14px;border:1px solid #e3e6ea;border-radius:10px;background:#fafbfc}.photo-preview img{display:block;max-width:100%;max-height:620px;margin:12px auto 0;object-fit:contain;border-radius:6px}.photo-preview[hidden]{display:none}
+  </style>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <main class="card">
+    <h2>芊町 AI 助理</h2>
+    <h3>發票確認表單</h3>
+    <p id="status" role="status">正在初始化...</p>
+    <p class="hint">發票暫存 ID</p>
+    <p class="id" id="tempId">尚未讀取</p>
+    <p id="loginStatus"></p>
+    <button id="loginButton" type="button">使用 LINE 登入</button>
+      <section id="photoPreview" class="photo-preview" aria-labelledby="photoTitle" hidden>
+        <strong id="photoTitle">原始發票照片</strong>
+        <p id="photoStatus" class="hint" role="status">尚未讀取照片</p>
+        <img id="invoicePhoto" alt="原始發票照片，請對照下方辨識欄位" hidden>
+      </section>
+    <section class="locked" aria-labelledby="invoiceTitle">
+      <strong id="invoiceTitle">發票確認資料</strong>
+      
+<label>單據類型
+  <input id="documentType" disabled placeholder="尚未取得授權資料">
+</label>
+
+<label>進銷項別
+  <input id="transactionType" disabled placeholder="尚未取得授權資料">
+</label>
+
+      <p id="invoiceStatus" class="hint">請稍候，正在取得發票資料…</p>
+     
+
+
+<label>交易對象名稱
+  <input id="vendorName" disabled placeholder="請輸入資料">
+</label>
+
+
+
+<label>發票日期
+  <input
+    id="documentDate"
+    type="date"
+    disabled
+  >
+</label>
+
+<label>發票號碼
+  <input id="invoiceNumber" disabled placeholder="尚未取得授權資料">
+</label>
+      
+<label>賣方統一編號
+  
+<input id="vendorTaxId" type="text" inputmode="numeric" maxlength="8" disabled placeholder="尚未取得授權資料">
+
+</label>
+      
+<p id="vendorTaxIdError"
+   class="hint"
+   role="alert"
+   style="color:#c62828;display:none;">
+  統一編號必須為 8 碼數字
+</p>
+
+
+<label>買方統一編號
+  
+<input id="buyerTaxId" type="text" inputmode="numeric" maxlength="8" disabled placeholder="尚未取得授權資料">
+
+</label>
+
+<p id="buyerTaxIdError"
+   class="hint"
+   role="alert"
+   style="color:#c62828;display:none;">
+  統一編號必須為 8 碼數字
+</p>
+
+
+
+<label>含稅總額（新臺幣）
+  <input
+    id="invoiceAmount"
+    type="number"
+    inputmode="numeric"
+    min="0"
+    step="1"
+    disabled
+    placeholder="尚未取得授權資料"
+  >
+</label>
+<p
+  id="invoiceAmountError"
+  style="color: red; display: none; font-size: 13px;"
+></p>
+
+
+      
+<button id="editButton" type="button" disabled>
+  開始編輯（尚未驗證）
+</button>
+
+
+      <button type="button" disabled>儲存確認（尚未開放）</button>
+    </section>
+    
+
+<p class="hint">
+  通過 LINE 身分及白名單驗證後，
+  可查閱指定暫存 ID 的單據資料，並進行人工編輯。
+  編輯內容僅保留於本次頁面，尚未提供儲存或正式登錄功能。
+</p>
+
+  </main>
+  <script>
+    const LIFF_ID = '2012604894-ztr2T9nZ';
+    const VERIFY_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-secure';
+    const PHOTO_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-photo-secure';
+    let photoObjectUrl = null;
+    let verificationStarted = false;
+    function setStatus(message, color = '#333333') {
+      const el = document.getElementById('status');
+      el.textContent = message;
+      el.style.color = color;
+    }
+    
+function getTempId() {
+  const params = new URLSearchParams(window.location.search);
+
+  let id = params.get('tempId') || params.get('id');
+
+  if (!id) {
+    const state = params.get('liff.state');
+
+    if (state) {
+      const stateParams = new URLSearchParams(
+        state.replace(/^\?/, '')
+      );
+
+      id = stateParams.get('tempId') || stateParams.get('id');
+    }
+  }
+
+  return id ? id.trim() : '';
+}
+
+    function loginWithLine() {
+      if (!liff.isLoggedIn()) liff.login({ redirectUri: window.location.href });
+    }
+    async function loadSecureInvoicePhoto(idToken, tempId) {
+      const container = document.getElementById('photoPreview');
+      const status = document.getElementById('photoStatus');
+      const img = document.getElementById('invoicePhoto');
+      container.hidden = false;
+      status.textContent = '正在安全讀取原始發票照片…';
+      img.hidden = true;
+      try {
+        const response = await fetch(PHOTO_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tempId, idToken }),
+          cache: 'no-store'
+        });
+        if (!response.ok) throw new Error('照片服務回應失敗');
+        const contentType = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+        if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(contentType)) {
+          throw new Error('回應不是支援的照片格式');
+        }
+        const blob = await response.blob();
+        if (!blob.size || blob.size > 20 * 1024 * 1024) throw new Error('照片大小不正確');
+        const newUrl = URL.createObjectURL(blob);
+        img.onload = function () {
+          status.textContent = '原始發票照片已載入，請核對下方資料。';
+        };
+        img.onerror = function () {
+          status.textContent = '照片格式無法顯示，請稍後重試。';
+          img.hidden = true;
+          URL.revokeObjectURL(newUrl);
+          if (photoObjectUrl === newUrl) photoObjectUrl = null;
+        };
+        if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl);
+        photoObjectUrl = newUrl;
+        img.src = newUrl;
+        img.hidden = false;
+      } catch (error) {
+        status.textContent = '原始照片暫時無法讀取，仍可核對與編輯下方資料。';
+        img.hidden = true;
+      }
+    }
+
+    async function verifyLineWithN8n(idToken, tempId) {
+      if (verificationStarted) return;
+      if (!idToken || !tempId) {
+        setStatus('缺少身分憑證或發票 ID，無法驗證', '#c62828');
+        return;
+      }
+      verificationStarted = true;
+      setStatus('正在進行 LINE 安全驗證...');
+      try {
+        const response = await fetch(VERIFY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tempId, idToken })
+        });
+       
+const result = await response.json();
+
+if (
+  response.ok &&
+  result.success === true &&
+  result.authorized === true &&
+  result.invoice &&
+  result.invoice.tempId === getTempId()
+) {
+  setStatus('LINE 驗證通過，發票資料查詢成功', '#16803c');
+  
+const loginStatus = document.getElementById('loginStatus');
+loginStatus.textContent = 'LINE 身分及白名單驗證完成';
+loginStatus.style.color = '#16803c';
+
+
+  
+const invoice = result.invoice;
+  
+document.getElementById('documentType').value =
+  String(invoice.documentType ?? '').trim() || '尚未辨識';
+
+document.getElementById('transactionType').value =
+  String(invoice.transactionType ?? '').trim() || '尚未分類';
+
+
+// 只顯示已通過驗證的指定單據資料
+
+document.getElementById('vendorName').value =
+  String(invoice.vendorName ?? '').trim() || '尚未辨識';
+
+
+const rawDocumentDate = String(invoice.documentDate ?? '').trim();
+
+const dateMatch = rawDocumentDate.match(
+  /^(\d{4})[-/](\d{1,2})[-/](\d{1,2})(?:$|[T\s])/
+);
+
+document.getElementById('documentDate').value = dateMatch
+  ? `${dateMatch[1]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[3].padStart(2, '0')}`
+  : '';
+
+
+document.getElementById('invoiceAmount').value =
+  invoice.amount === null || invoice.amount === undefined
+    ? ''
+    : String(invoice.amount);
+
+
+document.getElementById('invoiceNumber').value =
+  String(invoice.invoiceNumber ?? '').trim() || '尚未辨識';
+  
+document.getElementById('vendorTaxId').value =
+  String(invoice.vendorTaxId ?? '').trim() || '尚未辨識';
+
+document.getElementById('buyerTaxId').value =
+  String(invoice.buyerTaxId ?? '').trim() || '尚未辨識';
+
+
+
+document.getElementById('invoiceStatus').textContent =
+  '發票資料已載入，請核對內容。';
+  
+const editButton = document.getElementById('editButton');
+editButton.disabled = false;
+editButton.textContent = '開始編輯';
+
+// 發票資料驗證成功後，才另外讀取受保護的照片；不阻擋表單。
+void loadSecureInvoicePhoto(idToken, tempId);
+
+
+
+} else {
+  setStatus('發票查詢失敗或身分驗證未通過', '#c62828');
+
+  document.getElementById('invoiceStatus').textContent =
+    '無法取得指定發票資料，表單維持鎖定。';
+}
+
+      } catch (error) {
+        setStatus('驗證服務暫時無法連線', '#c62828');
+      }
+    }
+    async function startApp() {
+      const output = document.getElementById('tempId');
+      const loginStatus = document.getElementById('loginStatus');
+      const loginButton = document.getElementById('loginButton');
+      setStatus('LINE LIFF 初始化中...');
+      try {
+        await liff.init({ liffId: LIFF_ID });
+        const tempId = getTempId();
+        if (tempId && /^(?:TMP-[A-Za-z0-9_-]{1,80}|TEST-[A-Za-z0-9_-]{1,80})$/.test(tempId)) {
+          output.textContent = tempId;
+        } else {
+          output.textContent = '缺少有效的暫存 ID';
+          setStatus('缺少有效的發票暫存 ID，無法驗證', '#c62828');
+          return;
+        }
+        if (!liff.isLoggedIn()) {
+          loginStatus.textContent = 'LINE 尚未登入';
+          loginStatus.style.color = '#c62828';
+          loginButton.style.display = 'block';
+          setStatus('請先使用 LINE 登入');
+          return;
+        }
+        const idToken = liff.getIDToken();
+        if (!idToken) {
+          loginStatus.textContent = 'LINE 已登入，但尚未取得 ID Token';
+          loginStatus.style.color = '#c62828';
+          setStatus('無法取得 LINE 身分憑證', '#c62828');
+          return;
+        }
+        loginStatus.textContent = 'LINE 已登入，等待身分授權確認';
+        loginStatus.style.color = '#555555';
+        await verifyLineWithN8n(idToken, tempId);
+      } catch (error) {
+        setStatus('LIFF 初始化失敗', '#c62828');
+        output.textContent = '請確認 LIFF 設定及網路連線';
+      }
+    }
+    
+document.getElementById('editButton').addEventListener('click', function () {
+  if (this.disabled) return;
+
+  const editableFields = [
+    'documentType',
+    'transactionType',
+    'vendorName',
+    'documentDate',
+    'invoiceNumber',
+    'vendorTaxId',
+    'buyerTaxId',
+    'invoiceAmount'
+  ];
+
+  
+editableFields.forEach(function (fieldId) {
+  const field = document.getElementById(fieldId);
+
+  
+if (['尚未辨識', '尚未分類'].includes(field.value.trim())) {
+  field.value = '';
+}
+
+field.placeholder = '請輸入資料';
+field.disabled = false;
+});
+
+
+  this.disabled = true;
+  this.textContent = '編輯中';
+
+  document.getElementById('invoiceStatus').textContent =
+    '目前為人工編輯模式，修改內容尚未儲存。';
+});
+
+    
+['vendorTaxId', 'buyerTaxId'].forEach(function (fieldId) {
+  const field = document.getElementById(fieldId);
+
+  field.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 8);
+  });
+});
+
+    
+
+
+function isValidTaiwanTaxId(value) {
+  const taxId = String(value ?? '').trim();
+
+  if (!/^\d{8}$/.test(taxId)) return false;
+
+  const weights = [1, 2, 1, 2, 1, 2, 4, 1];
+
+  const sum = taxId.split('').reduce(function (total, digit, index) {
+    const product = Number(digit) * weights[index];
+
+    return total + Math.floor(product / 10) + (product % 10);
+  }, 0);
+
+  // 現行規則：總和必須為 10 的倍數
+  if (sum % 10 === 0) return true;
+
+  // 第 7 碼為 7 的特殊規則
+  return taxId[6] === '7' && (sum + 1) % 10 === 0;
+}
+ 
+function validateInvoiceAmount() {
+  const input = document.getElementById("invoiceAmount");
+  const error = document.getElementById("invoiceAmountError");
+
+  const value = input.value.trim();
+  let message = "";
+
+  if (value === "") {
+    message = "請輸入含稅總額";
+  } else if (
+    !Number.isSafeInteger(Number(value)) ||
+    Number(value) < 0
+  ) {
+    message = "金額必須為 0 或正整數";
+  }
+
+  error.textContent = message;
+  error.style.display = message ? "block" : "none";
+  input.setAttribute("aria-invalid", message ? "true" : "false");
+
+  return message === "";
+}
+
+document.getElementById("invoiceAmount")
+  .addEventListener("input", validateInvoiceAmount);
+   
+
+function isValidTaxIdFormat(value) {
+  const taxId = String(value ?? '').trim();
+
+  // 未填寫時，暫時允許空白
+  if (taxId === '') return true;
+
+  // 有填寫時，必須剛好 8 碼數字
+  return /^\d{8}$/.test(taxId);
+}
+    
+['vendorTaxId', 'buyerTaxId'].forEach(function (fieldId) {
+  const field = document.getElementById(fieldId);
+  const error = document.getElementById(fieldId + 'Error');
+
+  field.addEventListener('input', function () {
+    
+const value = field.value.trim();
+
+const formatValid = isValidTaxIdFormat(value);
+const checksumValid =
+  value === '' || (formatValid && isValidTaiwanTaxId(value));
+
+const isValid = formatValid && checksumValid;
+
+if (value !== '' && !formatValid) {
+  error.textContent = '統一編號必須為 8 碼數字';
+} else if (value !== '' && !checksumValid) {
+  error.textContent = '統一編號檢查碼不正確，請確認';
+}
+
+error.style.display = isValid ? 'none' : 'block';
+field.setAttribute('aria-invalid', String(!isValid));
+
+  });
+});
+
+
+    document.getElementById('loginButton').addEventListener('click', loginWithLine);
+    startApp();
+  </script>
+</body>
+</html>
