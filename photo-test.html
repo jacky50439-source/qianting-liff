@@ -152,8 +152,14 @@ function getTempId() {
 }
 
     function loginWithLine() {
-      if (!liff.isLoggedIn()) liff.login({ redirectUri: window.location.href });
-    }
+  if (liff.isLoggedIn()) {
+    liff.logout();
+  }
+
+  liff.login({
+    redirectUri: window.location.href
+  });
+}
     async function loadSecureInvoicePhoto(idToken, tempId) {
       const container = document.getElementById('photoPreview');
       const status = document.getElementById('photoStatus');
@@ -282,6 +288,9 @@ void loadSecureInvoicePhoto(idToken, tempId);
 
 } else {
   setStatus('發票查詢失敗或身分驗證未通過', '#c62828');
+  const loginButton = document.getElementById('loginButton');
+loginButton.textContent = '重新使用 LINE 登入';
+loginButton.style.display = 'block';
 
   document.getElementById('invoiceStatus').textContent =
     '無法取得指定發票資料，表單維持鎖定。';
