@@ -6,6 +6,20 @@
   <title>芊町 AI 助理｜安全發票確認</title>
   <style>
     *{box-sizing:border-box}body{font-family:Arial,"Microsoft JhengHei",sans-serif;background:#f5f6f8;margin:0;padding:28px 16px;color:#27313a}.card{max-width:520px;margin:auto;padding:24px;background:#fff;border-radius:14px;box-shadow:0 3px 16px #15253610}h2,h3{text-align:center}h3{font-size:17px;color:#555}#status,#loginStatus{font-weight:bold;text-align:center}.id{overflow-wrap:anywhere;padding:12px;background:#f1f3f5;border-radius:8px;text-align:center}button{width:100%;padding:14px;margin-top:16px;background:#06c755;color:#fff;border:0;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer}#loginButton{display:none}.hint{font-size:13px;color:#666;line-height:1.6}.locked{margin-top:18px;padding:16px;background:#f7f8fa;border:1px solid #e3e6ea;border-radius:10px}label{display:block;font-size:13px;color:#555;margin-top:12px}input{width:100%;padding:10px;margin-top:5px;border:1px solid #d9dfe5;border-radius:7px;background:#f5f6f8;color:#555}button:disabled{background:#aab2b9;cursor:not-allowed}.photo-preview{margin-top:18px;padding:14px;border:1px solid #e3e6ea;border-radius:10px;background:#fafbfc}.photo-preview img{display:block;max-width:100%;max-height:620px;margin:12px auto 0;object-fit:contain;border-radius:6px}.photo-preview[hidden]{display:none}
+  select {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #d9dfe5;
+  border-radius: 7px;
+  background: #f5f6f8;
+  color: #555;
+  font-size: 16px;
+}
+select:disabled {
+  opacity: 1;
+  color: #777;
+}
   </style>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 </head>
@@ -27,11 +41,20 @@
       <strong id="invoiceTitle">發票確認資料</strong>
       
 <label>單據類型
-  <input id="documentType" disabled placeholder="尚未取得授權資料">
+  <select id="documentType" disabled>
+    <option value="">請選擇單據類型</option>
+    <option value="電子發票">電子發票</option>
+    <option value="手開發票">手開發票</option>
+    <option value="一般收據">一般收據</option>
+  </select>
 </label>
 
 <label>進銷項別
-  <input id="transactionType" disabled placeholder="尚未取得授權資料">
+  <select id="transactionType" disabled>
+    <option value="">請選擇進銷項別</option>
+    <option value="進項">進項（公司支出）</option>
+    <option value="銷項">銷項（公司收入）</option>
+  </select>
 </label>
 
       <p id="invoiceStatus" class="hint">請稍候，正在取得發票資料…</p>
@@ -240,11 +263,30 @@ loginStatus.style.color = '#16803c';
   
 const invoice = result.invoice;
   
+const rawDocumentType = String(invoice.documentType ?? '').trim();
+const documentTypeMap = {
+  '電子發票': '電子發票',
+  '電子發票證明聯': '電子發票',
+  '手開發票': '手開發票',
+  '傳統發票': '手開發票',
+  '手開式發票': '手開發票',
+  '一般收據': '一般收據',
+  '收據': '一般收據'
+};
+
 document.getElementById('documentType').value =
-  String(invoice.documentType ?? '').trim() || '尚未辨識';
+  documentTypeMap[rawDocumentType] || '';
+
+const rawTransactionType = String(invoice.transactionType ?? '').trim();
+const transactionTypeMap = {
+  '進項': '進項',
+  '進項發票': '進項',
+  '銷項': '銷項',
+  '銷項發票': '銷項'
+};
 
 document.getElementById('transactionType').value =
-  String(invoice.transactionType ?? '').trim() || '尚未分類';
+  transactionTypeMap[rawTransactionType] || '';
 
 
 // 只顯示已通過驗證的指定單據資料
@@ -366,7 +408,9 @@ if (['尚未辨識', '尚未分類'].includes(field.value.trim())) {
   field.value = '';
 }
 
-field.placeholder = '請輸入資料';
+if (field.tagName === 'INPUT') {
+  field.placeholder = '請輸入資料';
+}
 field.disabled = false;
 });
 
