@@ -108,7 +108,7 @@
 </button>
 
 
-      <button type="button" disabled>儲存確認（尚未開放）</button>
+      <button id="saveButton" type="button" disabled>儲存確認（尚未開放）</button>
     </section>
     
 
@@ -446,6 +446,60 @@ function isValidTaxIdFormat(value) {
   // 有填寫時，必須剛好 8 碼數字
   return /^\d{8}$/.test(taxId);
 }
+    function validateInvoiceBeforeSave() {
+  const getValue = (id) =>
+    document.getElementById(id).value.trim();
+
+  const requiredFields = [
+    ['documentType', '單據類型'],
+    ['transactionType', '進銷項別'],
+    ['vendorName', '交易對象名稱'],
+    ['documentDate', '發票日期']
+  ];
+
+  for (const [id, label] of requiredFields) {
+    const value = getValue(id);
+    if (!value || ['尚未辨識', '尚未分類'].includes(value)) {
+      alert('請確認並填寫：' + label);
+      document.getElementById(id).focus();
+      return false;
+    }
+  }
+
+  if (!validateInvoiceAmount()) {
+    document.getElementById('invoiceAmount').focus();
+    return false;
+  }
+
+  for (const id of ['vendorTaxId', 'buyerTaxId']) {
+    const value = getValue(id);
+    if (value && (!isValidTaxIdFormat(value) || !isValidTaiwanTaxId(value))) {
+      alert('請確認統一編號是否正確');
+      document.getElementById(id).focus();
+      return false;
+    }
+  }
+
+  return true;
+}
+    function collectInvoiceForSave() {
+  const getValue = (id) =>
+    document.getElementById(id).value.trim();
+
+  return {
+    tempId: getTempId(),
+    invoice: {
+      documentType: getValue('documentType'),
+      transactionType: getValue('transactionType'),
+      vendorName: getValue('vendorName'),
+      documentDate: getValue('documentDate'),
+      invoiceNumber: getValue('invoiceNumber'),
+      vendorTaxId: getValue('vendorTaxId'),
+      buyerTaxId: getValue('buyerTaxId'),
+      totalAmount: Number(getValue('invoiceAmount'))
+    }
+  };
+}
     
 ['vendorTaxId', 'buyerTaxId'].forEach(function (fieldId) {
   const field = document.getElementById(fieldId);
@@ -473,7 +527,20 @@ field.setAttribute('aria-invalid', String(!isValid));
   });
 });
 
+document.getElementById('saveButton').addEventListener('click', function () {
+  if (this.disabled) return;
 
+  if (!validateInvoiceBeforeSave()) return;
+
+  const payload = collectInvoiceForSave();
+
+  document.getElementById('invoiceStatus').textContent =
+    '發票資料檢查通過，正式儲存功能尚未開放。';
+
+  console.log('發票資料已完成本機檢查，未送出或儲存。', {
+    fieldNames: Object.keys(payload.invoice)
+  });
+});
     document.getElementById('loginButton').addEventListener('click', loginWithLine);
     startApp();
   </script>
