@@ -131,14 +131,14 @@ select:disabled {
 </button>
 
 
-      <button id="saveButton" type="button" disabled>儲存確認（尚未開放）</button>
+      <button id="saveButton" type="button" disabled>儲存確認（請先開始編輯）</button>
     </section>
     
 
 <p class="hint">
   通過 LINE 身分及白名單驗證後，
   可查閱指定暫存 ID 的單據資料，並進行人工編輯。
-  編輯內容僅保留於本次頁面，尚未提供儲存或正式登錄功能。
+  確認資料無誤後可送出儲存。若儲存結果不明，請先查核正式憑證明細，勿重複送出。
 </p>
 
   </main>
@@ -146,7 +146,12 @@ select:disabled {
     const LIFF_ID = '2012604894-iOxvfIP6';
     const VERIFY_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-secure';
 const PHOTO_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-photo-secure';
-   let photoObjectUrl = null;
+   // 測試階段：只使用 n8n Test URL，正式上線前另行切換。
+const SAVE_URL = 'https://qian-ai.app.n8n.cloud/webhook-test/qianting-invoice-save-secure';
+let authorizedTempId = '';
+let saving = false;
+let saveLocked = false;
+let photoObjectUrl = null;
     let verificationStarted = false;
     function setStatus(message, color = '#333333') {
       const el = document.getElementById('status');
@@ -261,6 +266,7 @@ loginStatus.style.color = '#16803c';
 
 
   
+authorizedTempId = tempId;
 const invoice = result.invoice;
   
 const rawDocumentType = String(invoice.documentType ?? '').trim();
@@ -417,6 +423,11 @@ field.disabled = false;
 
   this.disabled = true;
   this.textContent = '編輯中';
+  if (authorizedTempId === getTempId() && !saveLocked) {
+    const saveButton = document.getElementById('saveButton');
+    saveButton.disabled = false;
+    saveButton.textContent = '儲存確認';
+  }
 
   document.getElementById('invoiceStatus').textContent =
     '目前為人工編輯模式，修改內容尚未儲存。';
@@ -447,11 +458,11 @@ function isValidTaiwanTaxId(value) {
     return total + Math.floor(product / 10) + (product % 10);
   }, 0);
 
-  // 現行規則：總和必須為 10 的倍數
-  if (sum % 10 === 0) return true;
+  // 現行規則：總和必須為 5 的倍數
+  if (sum % 5 === 0) return true;
 
   // 第 7 碼為 7 的特殊規則
-  return taxId[6] === '7' && (sum + 1) % 10 === 0;
+  return taxId[6] === '7' && (sum + 1) % 5 === 0;
 }
  
 function validateInvoiceAmount() {
@@ -510,6 +521,12 @@ function isValidTaxIdFormat(value) {
     }
   }
 
+  const number = getValue('invoiceNumber').replace(/\s+/g, '').toUpperCase();
+  if (getValue('documentType') !== '一般收據' && !/^[A-Z]{2}\d{8}$/.test(number)) {
+    alert('請確認發票號碼為兩碼英文字母及八碼數字');
+    document.getElementById('invoiceNumber').focus();
+    return false;
+  }
   if (!validateInvoiceAmount()) {
     document.getElementById('invoiceAmount').focus();
     return false;
@@ -537,7 +554,7 @@ function isValidTaxIdFormat(value) {
       transactionType: getValue('transactionType'),
       vendorName: getValue('vendorName'),
       documentDate: getValue('documentDate'),
-      invoiceNumber: getValue('invoiceNumber'),
+      invoiceNumber: getValue('invoiceNumber').replace(/\s+/g, '').toUpperCase(),
       vendorTaxId: getValue('vendorTaxId'),
       buyerTaxId: getValue('buyerTaxId'),
       totalAmount: Number(getValue('invoiceAmount'))
@@ -571,19 +588,67 @@ field.setAttribute('aria-invalid', String(!isValid));
   });
 });
 
-document.getElementById('saveButton').addEventListener('click', function () {
-  if (this.disabled) return;
-
+document.getElementById('saveButton').addEventListener('click', async function () {
+  if (this.disabled || saving || saveLocked) return;
+  if (!authorizedTempId || authorizedTempId !== getTempId() || !/^TMP-[A-Za-z0-9-]{1,80}$/.test(authorizedTempId)) {
+    alert('暫存 ID 未通過正式儲存驗證，請重新開啟頁面。');
+    return;
+  }
   if (!validateInvoiceBeforeSave()) return;
-
-  const payload = collectInvoiceForSave();
-
-  document.getElementById('invoiceStatus').textContent =
-    '發票資料檢查通過，正式儲存功能尚未開放。';
-
-  console.log('發票資料已完成本機檢查，未送出或儲存。', {
-    fieldNames: Object.keys(payload.invoice)
-  });
+  const idToken = liff.isLoggedIn() ? liff.getIDToken() : null;
+  if (!idToken) {
+    alert('LINE 身分憑證已失效，請重新開啟頁面。');
+    return;
+  }
+  if (!confirm('確認將這筆資料送出至正式憑證明細？')) return;
+  const payload = { ...collectInvoiceForSave(), idToken };
+  const button = this;
+  const status = document.getElementById('invoiceStatus');
+  const fields = ['documentType','transactionType','vendorName','documentDate','invoiceNumber','vendorTaxId','buyerTaxId','invoiceAmount'];
+  saving = true;
+  button.disabled = true;
+  button.textContent = '儲存中，請勿關閉頁面…';
+  fields.forEach(id => document.getElementById(id).disabled = true);
+  status.textContent = '正在送出並確認正式寫入結果…';
+  try {
+    const response = await fetch(SAVE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      cache: 'no-store'
+    });
+    const result = await response.json();
+    if (response.ok && result.success === true && result.status === 'SAVED' && result.tempId === authorizedTempId && typeof result.officialId === 'string' && result.officialId.trim()) {
+      saveLocked = true;
+      button.textContent = '已成功儲存';
+      status.textContent = '正式儲存成功，憑證 ID：' + result.officialId;
+      status.style.color = '#16803c';
+      return;
+    }
+    // 僅明確的寫入前拒絕允許修改後重送。
+    const safeReject = response.status >= 400 && response.status < 500 && result.success === false && result.retryAllowed !== false && ['VALIDATION_FAILED','DUPLICATE_INVOICE_NUMBER','INVALID_INVOICE_NUMBER'].includes(result.status);
+    const message = typeof result.message === 'string' ? result.message : '儲存未確認';
+    const errors = Array.isArray(result.errors) ? result.errors.filter(e => typeof e === 'string').join('；') : '';
+    status.style.color = '#c62828';
+    status.textContent = message + (errors ? '：' + errors : '');
+    if (!safeReject) {
+      saveLocked = true;
+      button.textContent = '已停止送出，請查核';
+      status.textContent += '。請先查核正式憑證明細及暫存狀態，勿直接重送。';
+    }
+  } catch (error) {
+    saveLocked = true;
+    button.textContent = '儲存結果不明，請查核';
+    status.style.color = '#c62828';
+    status.textContent = '連線或回應異常，資料可能已寫入。請先查核正式憑證明細，勿直接重送。';
+  } finally {
+    saving = false;
+    if (!saveLocked) {
+      fields.forEach(id => document.getElementById(id).disabled = false);
+      button.disabled = false;
+      button.textContent = '儲存確認';
+    }
+  }
 });
     document.getElementById('loginButton').addEventListener('click', loginWithLine);
     startApp();
