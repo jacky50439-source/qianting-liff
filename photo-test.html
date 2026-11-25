@@ -146,8 +146,8 @@ select:disabled {
     const LIFF_ID = '2012604894-iOxvfIP6';
     const VERIFY_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-secure';
 const PHOTO_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-photo-secure';
-   // 測試階段：只使用 n8n Test URL，正式上線前另行切換。
-const SAVE_URL = 'https://qian-ai.app.n8n.cloud/webhook-test/qianting-invoice-save-secure';
+   // 正式上線：使用 n8n Production URL。
+const SAVE_URL = 'https://qian-ai.app.n8n.cloud/webhook/qianting-invoice-save-secure';
 let authorizedTempId = '';
 let saving = false;
 let saveLocked = false;
